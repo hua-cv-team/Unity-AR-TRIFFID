@@ -33,4 +33,4 @@ For each job the watcher:
 
 Jobs wait in the queue during Play Mode and are staged when you exit it. An unreachable samba folder requeues the job; a job with missing files is dropped with the reason in the Console.
 
-To test without the ground station, put a job folder in the samba folder and run `projects/TRIFFID/LocalScripts/publish_ar_job.py <stem>` where the broker's management API is reachable (on the pipeline machine).
+To test without the ground station, put a job folder in the samba folder and run `LocalScripts/publish_ar_job.py <stem>` where the broker's management API is reachable (on the pipeline machine).

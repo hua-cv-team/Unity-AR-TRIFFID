@@ -1,0 +1,173 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "feature_a41e610f455d4e61b98e18b75d25345d",
+      "properties": {
+        "class": "ugv_path",
+        "id": "feature_a41e610f455d4e61b98e18b75d25345d",
+        "confidence": 1.0,
+        "category": "navigation",
+        "source": "Ground Station",
+        "altitude_m": 78.46309,
+        "heights_above_surface_m": [
+          6.435071646235883,
+          5.625041873194277,
+          6.198236897587776
+        ],
+        "heightSources": [
+          "mesh",
+          "mesh",
+          "mesh"
+        ],
+        "heightStatuses": [
+          "ok",
+          "ok",
+          "ok"
+        ],
+        "ar_client_id": "feature_a41e610f455d4e61b98e18b75d25345d",
+        "timestamp": "2026-11-12T19:10:26.274Z",
+        "marker-color": "#38E0FF"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            23.708163608871917,
+            37.960232160526594,
+            78.4630890218541
+          ],
+          [
+            23.708729559875753,
+            37.96059233054696,
+            80.26619516965002
+          ],
+          [
+            23.70928927011129,
+            37.96100418416203,
+            81.07519993465394
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "feature_73d099ca53bd4f549494021c9312a64d",
+      "properties": {
+        "class": "unsafe",
+        "id": "feature_73d099ca53bd4f549494021c9312a64d",
+        "confidence": 1.0,
+        "category": "navigation",
+        "source": "Ground Station",
+        "altitude_m": 82.18893,
+        "heights_above_surface_m": [
+          [
+            6.438576953485608,
+            17.144274250604212,
+            15.439871247857809,
+            4.045378424227238,
+            6.438576953485608
+          ]
+        ],
+        "heightSources": [
+          [
+            "mesh",
+            "mesh",
+            "mesh",
+            "mesh",
+            "mesh"
+          ]
+        ],
+        "heightStatuses": [
+          [
+            "ok",
+            "ok",
+            "ok",
+            "ok",
+            "ok"
+          ]
+        ],
+        "ar_client_id": "feature_73d099ca53bd4f549494021c9312a64d",
+        "marker-color": "#FF5C4C",
+        "fill": "#FF5C4C",
+        "fill-opacity": 0.25
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              23.708751976321267,
+              37.962359164256476,
+              82.18892504554242
+            ],
+            [
+              23.706654380223597,
+              37.96122618629803,
+              93.82211698777974
+            ],
+            [
+              23.707790706731455,
+              37.96025311764775,
+              89.4167515207082
+            ],
+            [
+              23.709882254614538,
+              37.96144599372452,
+              80.15793037693948
+            ],
+            [
+              23.708751976321267,
+              37.962359164256476,
+              82.18892504554242
+            ]
+          ]
+        ]
+      }
+    }
+  ],
+  "observer_status": {
+    "last_update": "2026-11-12 21:40:44",
+    "fe_updated": 0,
+    "mobile_updated": 0,
+    "ar_updated": 1
+  },
+  "mqtt_latest": {
+    "message": {
+      "header": {
+        "stamp": {
+          "sec": 1794512533,
+          "nanosec": 113724231
+        },
+        "frame_id": "b2/base_link"
+      },
+      "roll": 0.0,
+      "pitch": 0.0,
+      "yaw": 0.0,
+      "latitude": 37.96210989167727,
+      "longitude": 23.711889295676997,
+      "battery_temperature": 0,
+      "power_voltage": 0,
+      "power_current": 0,
+      "temperature_ntc1": 0,
+      "temperature_ntc2": 0,
+      "mode": 0,
+      "commander": "none",
+      "behavior": "IDLE",
+      "action_command": "{}"
+    },
+    "topic": "/b2/ugv_status_from_ros2",
+    "time": "2026-11-12 21:42:13",
+    "motion": {
+      "enabled": true,
+      "start_after_sec": 5.0,
+      "start_at_epoch": 1794512345.3331368,
+      "interval_sec": 1.0,
+      "lat_step": 1e-05,
+      "lon_step": 2e-05,
+      "yaw_step": 0.0,
+      "last_step_epoch": 1794512533.1137242
+    }
+  }
+}
