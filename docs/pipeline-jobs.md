@@ -36,11 +36,11 @@ For each job the watcher:
 3. Stages the scene, the same way the ground station stages its own: the tracked template `Assets/Scenes/TRIFFID.unity` is copied to the git-ignored `Assets/Staged/TRIFFID_staged.unity`, and in the copy the Gaussian renderer, rotation aligner, JSON spawner and mesh loader are switched to `project_paths.local.json`, the asset and mesh are loaded, then the JSON rotation is applied and the collider synced onto the new mesh. The copy is saved. The template and the tracked `project_paths.json` it reads are never changed, so a job never shows up as a change in git. Detections are not part of the job yet; `ArSceneStager.StageDetections` is the empty slot for them.
 
 Which scene you see afterwards:
-- **The staged scene is open:** the job is staged into it in place. If it had unsaved edits, the job is applied but not saved, so your edits are not overwritten.
+- **The staged scene is open:** the job is staged into it in place and saved.
 - **Only the template, without unsaved changes, or the empty startup scene is open:** the Editor switches to the freshly staged scene.
 - **Any other scene, or unsaved changes:** nothing you have open is replaced. The job is staged in the background and the Console says so; open `Assets/Staged/TRIFFID_staged.unity` to see it.
 
-A staged scene that is not open is refreshed from the template for every job, so nothing of an earlier job carries over. Edits to the scene itself belong in the template.
+The staged scene belongs to the pipeline: it is saved after every job, even if it shows unsaved changes (its components mark it modified just by loading), so anything changed by hand in it is overwritten by the next job. A staged scene that is not open is refreshed from the template for every job, so nothing of an earlier job carries over. Lasting changes belong in the template, `Assets/Scenes/TRIFFID.unity`.
 
 Jobs wait in the queue during Play Mode and are staged when you exit it. An unreachable samba folder requeues the job; a job with missing files, or one that cannot be staged, is dropped with the reason in the Console.
 

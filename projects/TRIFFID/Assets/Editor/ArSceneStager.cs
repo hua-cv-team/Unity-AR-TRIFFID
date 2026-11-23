@@ -15,6 +15,10 @@ using UnityEngine.SceneManagement;
 /// <c>Assets/Staged/TRIFFID_staged.unity</c>, every scene component in the copy is switched to the
 /// job's paths in project_paths.local.json, and the same actions as the Inspector buttons run, so
 /// the copy shows the job in Edit Mode and reloads it on Play. The template never holds job data.
+///
+/// The staged scene belongs to the pipeline: it is saved after every job, whatever its modified
+/// flag says (scene components mark it modified just by loading), so changes made by hand to it are
+/// overwritten by the next job. Lasting changes belong in the template.
 /// </summary>
 internal static class ArSceneStager
 {
@@ -42,8 +46,6 @@ internal static class ArSceneStager
     internal enum StageResult
     {
         Saved,
-        // Applied to the open staged scene, but its earlier unsaved edits were not overwritten on disk.
-        AppliedUnsaved,
         Failed,
     }
 
@@ -97,8 +99,6 @@ internal static class ArSceneStager
             }
         }
 
-        bool hadUnsavedEdits = scene.isDirty;
-        var result = StageResult.Saved;
         try
         {
             // Order matters: the aligner is pointed at the new geolocal JSON and the mesh is in place
@@ -111,20 +111,12 @@ internal static class ArSceneStager
             StageDetections(scene, inputs);
 
             EditorSceneManager.MarkSceneDirty(scene);
-            if (hadUnsavedEdits)
-            {
-                result = StageResult.AppliedUnsaved;
-                problem = $"'{ScenePath}' had unsaved edits, so the staged job was applied but not saved.";
-                Debug.LogWarning($"{LogPrefix} {problem}");
-            }
-            else if (!EditorSceneManager.SaveScene(scene))
-            {
+            if (!EditorSceneManager.SaveScene(scene))
                 throw new IOException($"Could not save '{ScenePath}'.");
-            }
         }
         catch
         {
-            DiscardPartialStaging(scene, closeWhenDone, hadUnsavedEdits);
+            DiscardPartialStaging(scene, closeWhenDone);
             throw;
         }
 
@@ -135,7 +127,7 @@ internal static class ArSceneStager
         }
 
         Debug.Log($"{LogPrefix} Staged '{ScenePath}' for job '{inputs.Job?["job_id"]}'.");
-        return result;
+        return StageResult.Saved;
     }
 
     // The staged scene replaces what the Editor shows only when nothing would be lost: a single
@@ -163,16 +155,16 @@ internal static class ArSceneStager
         return true;
     }
 
-    // Leaves no half-applied job behind, so the next job starts from the saved scene. Earlier
-    // unsaved edits are kept, even though they now sit alongside the partial job.
-    private static void DiscardPartialStaging(Scene scene, bool closeWhenDone, bool hadUnsavedEdits)
+    // Leaves no half-applied job behind: the staged scene is reloaded from its last save (the
+    // previous job), discarding the partial one.
+    private static void DiscardPartialStaging(Scene scene, bool closeWhenDone)
     {
         if (closeWhenDone)
             EditorSceneManager.CloseScene(scene, removeScene: true);
-        else if (!hadUnsavedEdits && SceneManager.sceneCount == 1)
+        else if (SceneManager.sceneCount == 1)
             EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
         else
-            Debug.LogWarning($"{LogPrefix} '{ScenePath}' still holds a partly staged job; it was left open with its unsaved edits.");
+            Debug.LogError($"{LogPrefix} '{ScenePath}' still holds a partly staged job because other scenes are open with it; reopen it to discard the partial job.");
     }
 
     private static void StageGaussianRenderers(Scene scene, SceneInputs inputs)
