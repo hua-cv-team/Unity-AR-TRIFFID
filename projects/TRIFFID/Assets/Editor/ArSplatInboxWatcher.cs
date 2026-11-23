@@ -26,8 +26,10 @@ public static class ArSplatInboxWatcher
     private const string JobsFolderAssetPath = "Assets/TriffidJobs";
     private const double PollIntervalSeconds = 10.0;
 
-    // Shared config consumed by the renderer, mesh loader, COLMAP aligner and JSON spawner.
-    internal const string ProjectPathsJsonFileName = "project_paths.json";
+    // Job paths for the staged scene's renderer, mesh loader, COLMAP aligner and JSON spawner.
+    // Git-ignored, so jobs never change a tracked file; the template scene keeps reading the
+    // tracked project_paths.json.
+    internal const string ProjectPathsJsonFileName = "project_paths.local.json";
     internal const string GaussianAssetPathJsonKey = "gaussian_splat_asset_path";
     internal const string MeshPathJsonKey = "mesh_path";
     internal const string ColmapTransformPathJsonKey = "colmap_aligner_transform_path";
@@ -322,14 +324,23 @@ public static class ArSplatInboxWatcher
                 }
 
                 var sceneInputs = ApplyJobAssets(job, staged);
-                ArSceneStager.Stage(sceneInputs);
+                var stageResult = ArSceneStager.Stage(sceneInputs, out string stageProblem);
+                if (stageResult == ArSceneStager.StageResult.Failed)
+                {
+                    // Staging the same files again would fail the same way, so the job is dropped
+                    // with the reason; the stager has logged the details.
+                    Debug.LogError($"{LogPrefix} Job '{job["job_id"]}' was imported into '{staged.FolderAssetPath}' but not staged: {stageProblem}");
+                    Ack(deliveryTag);
+                    return;
+                }
 
-                Debug.Log($"{LogPrefix} Imported job '{job["job_id"]}' into '{staged.FolderAssetPath}'.");
+                Debug.Log($"{LogPrefix} Imported job '{job["job_id"]}' into '{staged.FolderAssetPath}' and staged '{ArSceneStager.ScenePath}'.");
                 Ack(deliveryTag);
             }
             catch (Exception ex)
             {
-                Debug.LogWarning($"{LogPrefix} Queue message handling failed: {ex.Message}");
+                // Unexpected (e.g. a disk error): the job goes back to the queue and is tried again.
+                Debug.LogError($"{LogPrefix} Queue message handling failed; the job was put back in the queue: {ex}");
                 s_RabbitChannel.BasicNackAsync(deliveryTag, multiple: false, requeue: true, cancellationToken: CancellationToken.None).GetAwaiter().GetResult();
             }
         }
@@ -500,8 +511,9 @@ public static class ArSplatInboxWatcher
             CopyWithMeta(dataSourcePath, folder);
         }
 
-        staged.MeshPath = ImportCompanion(ReadFirstString(job, "obj_path", "mesh_path"), folder, folderAssetPath, "mesh OBJ");
-        staged.TransformPath = ImportCompanion(ReadFirstString(job, "transform_json_path", "colmap_transform_path", "geolocalization_path"), folder, folderAssetPath, "geolocal transform JSON");
+        // Every input is required: a scene staged without one would keep an earlier job's file.
+        staged.MeshPath = ImportCompanion(ReadFirstString(job, "obj_path", "mesh_path"), folder, folderAssetPath, "mesh OBJ ('obj_path')");
+        staged.TransformPath = ImportCompanion(ReadFirstString(job, "transform_json_path", "colmap_transform_path", "geolocalization_path"), folder, folderAssetPath, "geolocal transform JSON ('transform_json_path')");
 
         // The files were written straight to disk, so the AssetDatabase has to discover them.
         AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
@@ -518,13 +530,10 @@ public static class ArSplatInboxWatcher
     private static string ImportCompanion(string messagePath, string folder, string folderAssetPath, string label)
     {
         if (string.IsNullOrWhiteSpace(messagePath))
-            return null;
+            throw new JobFileException($"the job names no {label}.");
 
         if (!TryLocateJobFile(messagePath, out string sourcePath))
-        {
-            Debug.LogWarning($"{LogPrefix} {label} referenced by the job was not found in '{s_SambaDir ?? "(unresolved)"}': '{messagePath}'.");
-            return null;
-        }
+            throw new JobFileException($"{label} '{messagePath}' was not found in '{s_SambaDir ?? "(unresolved)"}'.");
 
         string fileName = Path.GetFileName(sourcePath);
         File.Copy(sourcePath, Path.Combine(folder, fileName), overwrite: true);
@@ -574,9 +583,8 @@ public static class ArSplatInboxWatcher
         return null;
     }
 
-    // Writes the job into project_paths.json and returns the same paths for scene staging. Paths
-    // are stored project-relative (Assets/...). Inputs the job does not carry are removed, so a
-    // component never pairs the new splat with a previous job's files.
+    // Writes the job into project_paths.local.json and returns the same paths for scene staging.
+    // Paths are stored project-relative (Assets/...).
     private static ArSceneStager.SceneInputs ApplyJobAssets(JObject job, StagedJob staged)
     {
         var inputs = new ArSceneStager.SceneInputs
@@ -646,7 +654,9 @@ public static class ArSplatInboxWatcher
         }
         catch (Exception ex)
         {
-            Debug.LogWarning($"{LogPrefix} Could not update '{ProjectPathsJsonFileName}': {ex.Message}");
+            // The staged scene reads its inputs through this file, so staging without it would load
+            // an earlier job.
+            throw new IOException($"Could not update '{ProjectPathsJsonFileName}': {ex.Message}", ex);
         }
     }
 

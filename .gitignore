@@ -77,3 +77,8 @@ __pycache__/
 !/samba_folder/.gitkeep
 /projects/**/Assets/TriffidJobs/
 /projects/**/Assets/TriffidJobs.meta
+# Scene staged from the template for each pipeline job, and the job paths it reads.
+/projects/**/Assets/Staged/
+/projects/**/Assets/Staged.meta
+/projects/**/Assets/StreamingAssets/project_paths.local.json
+/projects/**/Assets/StreamingAssets/project_paths.local.json.meta
