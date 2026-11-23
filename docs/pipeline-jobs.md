@@ -4,6 +4,10 @@ The AR instance receives new scenes from the TRIFFID pipeline the same way the r
 
 ## Setup
 
+The full step-by-step for both machines (GS on Linux, this project on a Windows laptop), with a test
+that needs no new flight and a troubleshooting table, is in the pipeline repository:
+`triffid-full-pipeline/docs/ar-laptop-connection.md`. In short:
+
 1. Copy `.env.example` to `.env` at the repo root and set `RABBITMQ_HOST` to the pipeline machine's LAN address plus the broker credentials. On the pipeline machine, set `RABBITMQ_BIND` in its `.env` to that LAN address so the laptop can reach the broker. RabbitMQ's `guest` user only logs in from localhost, so use a real user.
 2. Connect to the job share. The pipeline machine shares its AR hand-off folder read-only over SMB: its `samba` service (compose profile `samba`) with `SAMBA_SHARE` (default `triffid`), `SAMBA_USER` and `SAMBA_PASS` from its `.env`, on the address in `SAMBA_BIND`. Log in once, then set `TRIFFID_SAMBA_DIR` to the share:
    - **Windows:** `net use \\192.168.1.50\triffid /user:triffid /persistent:yes` (asks for the password), then `TRIFFID_SAMBA_DIR=\\192.168.1.50\triffid`. A mapped drive works too (`net use Z: \\192.168.1.50\triffid /user:triffid /persistent:yes`, then `TRIFFID_SAMBA_DIR=Z:\`). Run `net use` as the same user that starts Unity Hub, not from an administrator prompt, or the Editor will not see it.
