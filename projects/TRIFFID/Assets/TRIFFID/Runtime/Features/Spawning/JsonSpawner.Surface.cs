@@ -435,6 +435,53 @@ public partial class JsonSpawner
         return true;
     }
 
+    // Features can be spawned before the map is aligned (the Gaussian Renderer,
+    // and with it the mesh collider, gets its JSON rotation in Start). A marker
+    // whose surface snap missed then stays unresolved. Once the map is aligned
+    // this repeats the same vertical snap for those markers only. It changes
+    // what is displayed; the feature's GeoJSON geometry is not rewritten.
+    public int ResolveUnresolvedElevations()
+    {
+        if (spawnInProgress || transformData == null || !enableSurfaceSnapFallback) return 0;
+        Transform parentRef = mapTransform != null ? mapTransform : transform;
+        var visited = new HashSet<Transform>();
+        int resolved = 0, remaining = 0;
+        foreach (NodeMapping mapping in nodeMappings)
+        {
+            Transform node = mapping?.node;
+            if (node == null || mapping.editInProgress || !visited.Add(node)) continue;
+            PointData data = node.GetComponent<PointData>();
+            if (data == null || !data.elevationUnresolved) continue;
+            // The latest-MQTT marker re-snaps on each of its own updates.
+            if (string.Equals(data.pointID, LatestMqttFeatureId, StringComparison.OrdinalIgnoreCase)) continue;
+            FloatingIcon icon = node.GetComponent<FloatingIcon>();
+            if (icon != null && icon.IsBeingManipulated) continue;
+
+            Vector3 approximate = parentRef.TransformPoint(GetColmapPosition(data.longitude, data.latitude, data.altitude));
+            if (!TrySnapToSurface(approximate, parentRef, out Vector3 snappedWorld)) { remaining++; continue; }
+
+            // As in spawning: the surface supplies altitude only, never new
+            // horizontal coordinates.
+            double alt = ColmapToWgs84(parentRef.InverseTransformPoint(snappedWorld)).alt;
+            Vector3 local = GetColmapPosition(data.longitude, data.latitude, alt);
+            node.position = parentRef.TransformPoint(local);
+            if (icon != null) icon.localMapPoint = local;
+            data.altitude = alt;
+            data.SetElevationUnresolved(false);
+
+            Feature feature = mapping.parentFeature;
+            if (!mapping.isCentroid && IsPointFeature(feature))
+                RefreshHeightAboveSurface(node, feature, data, true, false);
+            else
+                RefreshHeightAboveSurface(node, null, data);
+            resolved++;
+        }
+
+        if (resolved > 0 || remaining > 0)
+            TriffidLog.Info("JsonSpawner", $"Map aligned: resolved surface elevation for {resolved} marker(s); {remaining} still unresolved.");
+        return resolved;
+    }
+
     private void PrepareSurfaceForSnap(ref bool activatedSurfaceForSnap)
     {
         if (surfaceSnapTargetObject != null && autoActivateSurfaceForSnap && !surfaceSnapTargetObject.activeSelf)
