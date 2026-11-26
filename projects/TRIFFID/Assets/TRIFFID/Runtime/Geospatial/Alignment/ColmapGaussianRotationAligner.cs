@@ -8,6 +8,10 @@ using UnityEngine;
 
 public class ColmapGaussianRotationAligner : MonoBehaviour
 {
+    // Raised after the JSON rotation (and collider sync, when enabled) is
+    // applied. Surface queries made before this can miss the map mesh.
+    public static event Action<ColmapGaussianRotationAligner> RotationApplied;
+
     public enum EnuToUnityAxisMode
     {
         XEast_YUp_ZNorth,
@@ -256,6 +260,8 @@ public class ColmapGaussianRotationAligner : MonoBehaviour
         {
             SyncColliderNow();
         }
+
+        RotationApplied?.Invoke(this);
     }
 
     private void CaptureInitialRotationIfNeeded()

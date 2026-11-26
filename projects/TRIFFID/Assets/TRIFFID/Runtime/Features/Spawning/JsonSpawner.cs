@@ -250,6 +250,21 @@ public partial class JsonSpawner : MonoBehaviour
         }
     }
 
+    private void OnEnable()
+    {
+        ColmapGaussianRotationAligner.RotationApplied += HandleMapRotationApplied;
+    }
+
+    private void OnDisable()
+    {
+        ColmapGaussianRotationAligner.RotationApplied -= HandleMapRotationApplied;
+    }
+
+    private void HandleMapRotationApplied(ColmapGaussianRotationAligner aligner)
+    {
+        ResolveUnresolvedElevations();
+    }
+
     private void OnApplicationPause(bool pauseStatus)
     {
         if (pauseStatus)
